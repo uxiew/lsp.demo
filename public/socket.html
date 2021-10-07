@@ -1,0 +1,45 @@
+<!--
+ * @Description: 
+ * @version: 1.0.0
+ * @Author: 吴文周
+ * @Date: 2021-10-02 10:55:23
+ * @LastEditors: 吴文周
+ * @LastEditTime: 2021-10-05 18:27:51
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+</head>
+
+<body>
+  <script>
+    var ws = new WebSocket(
+      "ws://110.42.220.32:9528/api/v1/im/message?roomId=sasaas23&userId=sassa"
+    );
+    ws.onopen = function () {
+      console.log("ws onopen");
+    };
+    ws.onmessage = function (e) {
+      console.log("ws onmessage");
+      console.log("from server: " + e.data);
+    };
+
+    setTimeout(() => {
+      ws.send(
+        JSON.stringify({
+          userId: "sassa",
+          Cmd: 1, //群聊还是私聊
+          roomId: "sasaas23",
+          content: { ss: "ss11qwwqqwqw1" },
+        })
+      );
+    }, 2000);
+  </script>
+</body>
+
+</html>
