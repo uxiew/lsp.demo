@@ -53,19 +53,32 @@ class DCM {
     return streamData;
   }
 
-  async getCameraAndMic() {
-    const videoTrack = await this.getCameraVideo();
-    const audioTrack = await dcm.getAudioTrack();
+  async getAudio(constraints) {
+    const micList = await dcm.getMicList();
+    const audioTrack = await dcm.getAudioTrack({
+      deviceId: micList && micList[0].deviceId,
+      ...constraints
+    });
+    let audioStream = new MediaStream();
+    audioStream.addTrack(audioTrack);
 
-    let mediastream = new MediaStream();
-    mediastream.addTrack(audioTrack);
-    mediastream.addTrack(videoTrack);
-    return mediastream;
+    const streamData = {
+      micList,
+      audioStream,
+      stop: $video => stop.call(audioStream)
+    };
+
+    return streamData;
   }
 
-  async getCameraAndMic() {
-    const list = await dcm.getCameraList();
-    return list;
+  async publish($video, constraints) {
+    const { videoStream } = await this.getCameraVideo($video, constraints);
+    const { audioStream } = await this.getAudio(constraints);
+
+    return {
+      videoStream,
+      audioStream
+    };
   }
 }
 
@@ -146,6 +159,10 @@ class LspPeer {
     this.peerClient.terminateSession();
   }
 
+  addStream(mediaStream) {
+    this.peerClient.addStream(mediaStream);
+  }
+
   // =========== device =======
   async shareScreen($video, constraints) {
     return this.deviceManager.shareScreen($video, {
@@ -156,28 +173,19 @@ class LspPeer {
   }
 
   async publishVideo($video, constraints) {
-    const videoStream = await this.deviceManager.getCameraVideo(
+    const streamData = await this.deviceManager.getCameraVideo(
       $video,
       constraints
     );
-    return videoStream;
-    // this.peerClient.addStream(videoStream);
+    this.peerClient.addStream(streamData.videoStream);
+    return streamData;
   }
 
-  async publishAudio($video, constraints) {
-    const videoStream = await this.deviceManager.getCameraVideo(
-      $video,
-      constraints
-    );
-    return videoStream;
-    // this.peerClient.addStream(videoStream);
-  }
-
-  async publishStream($video, constraints) {
-    const videoStream = await this.deviceManager.getCameraAndMic();
-
-    return videoStream;
-    // this.peerClient.addStream(videoStream);
+  async publish($video, constraints) {
+    const streamData = await this.deviceManager.publish($video, constraints);
+    this.peerClient.addStream(streamData.videoStream);
+    this.peerClient.addStream(streamData.audioStream);
+    return streamData;
   }
 }
 
@@ -379,9 +387,6 @@ class PeerClientWrapper {
 
   // 处理用户音视频流
   _handleStream(mediastream) {
-    Object.assign(mediastream, {
-      play
-    });
     this.onStreamCallback(mediastream);
   }
 
@@ -436,12 +441,14 @@ class SocketClientWrapper {
   constructor({
     stream,
     serverUrl = 'ws://' + window.location.host,
+    joinUrl = window.location.href,
     roomId,
     userId,
     debug = false,
     peerOptions = {}
   } = {}) {
     this.debug = debug;
+    this.joinUrl = joinUrl;
     this._initiator = false;
 
     this.roomId = roomId; // sassa
@@ -520,7 +527,7 @@ class SocketClientWrapper {
   // starts socket client communication with signal server automatically, create & join a room
   startCommunication(room) {
     this.debug && console.log('Attempted to create or join room: ', room);
-    const joinApi = `http://110.42.220.32:9528/api/v1/im/join`;
+    const joinApi = this.joinUrl + `/api/v1/im/join`;
     fetch(joinApi, {
       method: 'POST',
       mode: 'cors',

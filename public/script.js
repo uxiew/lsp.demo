@@ -25,6 +25,7 @@ let myVideoStream;
 
 const options = {
   serverUrl: `ws://110.42.220.32:9528/api/v1/im/message`,
+  joinUrl: `http://110.42.220.32:9528`,
   roomId: ROOM_ID,
   userId: user,
   debug: true
@@ -46,7 +47,7 @@ let spw = new Lsp(options);
   await spw.connect();
 
   spw.on('stream', videoStream => {
-    console.log(videoStream);
+    console.log('streamstreamstreamstreamstreamstream', videoStream);
     connectToNewUser(user, videoStream);
   });
 
@@ -65,8 +66,22 @@ let spw = new Lsp(options);
   spw.join(ROOM_ID);
 })();
 
-spw.publishVideo('video-grid').then(async stream => {
-  console.log('=======videovideo=====', stream);
+/* function addMedia(stream) {
+  console.log('sadsdadsds', stream);
+  spw.peerClient.addStream(stream); // - add streams to peer dynamically
+}
+
+// then, anytime later...
+navigator.mediaDevices
+  .getUserMedia({
+    video: true,
+    audio: true
+  })
+  .then(addMedia)
+  .catch(() => {}); */
+
+spw.publish('video-grid').then(({ videoStream }) => {
+  console.log('=======videovideotrackvideo=====', videoStream);
 });
 
 let text = document.querySelector('#chat_message');
